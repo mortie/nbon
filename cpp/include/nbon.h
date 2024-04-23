@@ -1,7 +1,7 @@
 #include <cstddef>
 #include <iostream>
 #include <limits>
-#include <string_view>
+#include <cstring>
 #include <cstdint>
 #include <exception>
 #include <vector>
@@ -19,7 +19,7 @@ public:
 class ParseError: public std::exception {
 public:
 	ParseError(const char *str) {
-		str_ + "NBON parse error: ";
+		str_ = "NBON parse error: ";
 		str_ += str;
 	}
 
@@ -35,28 +35,28 @@ class Writer;
 
 class ObjectWriter {
 public:
-	explicit ObjectWriter(std::ostream &os): os_(os) {}
+	explicit ObjectWriter(std::ostream *os): os_(os) {}
 
 	Writer key(const char *key);
 
 private:
-	std::ostream &os_;
+	std::ostream *os_;
 };
 
 class Writer {
 public:
-	explicit Writer(std::ostream &os): os_(os) {}
+	explicit Writer(std::ostream *os): os_(os) {}
 
 	void writeTrue() {
 		checkReady();
 
-		os_ << 'T';
+		*os_ << 'T';
 	}
 
 	void writeFalse() {
 		checkReady();
 
-		os_ << 'F';
+		*os_ << 'F';
 	}
 
 	void writeBool(bool b) {
@@ -68,13 +68,13 @@ public:
 	void writeNull() {
 		checkReady();
 
-		os_ << 'N';
+		*os_ << 'N';
 	}
 
 	void writeString(const char *str) {
 		checkReady();
 
-		os_ << 'S' << str << '\0';
+		*os_ << 'S' << str << '\0';
 	}
 
 	void writeFloat(float f) {
@@ -83,13 +83,13 @@ public:
 		static_assert(sizeof(float) == 4);
 		static_assert(sizeof(std::uint32_t) == 4);
 		std::uint32_t n;
-		memcpy(&n, &f, 4);
+		std::memcpy(&n, &f, 4);
 
-		os_ << 'f';
-		os_ << (char)((n & 0x000000ffu) >> 0);
-		os_ << (char)((n & 0x0000ff00u) >> 8);
-		os_ << (char)((n & 0x00ff0000u) >> 16);
-		os_ << (char)((n & 0xff000000u) >> 24);
+		*os_ << 'f';
+		*os_ << (char)((n & 0x000000ffu) >> 0);
+		*os_ << (char)((n & 0x0000ff00u) >> 8);
+		*os_ << (char)((n & 0x00ff0000u) >> 16);
+		*os_ << (char)((n & 0xff000000u) >> 24);
 	}
 
 	void writeDouble(double d) {
@@ -98,40 +98,40 @@ public:
 		static_assert(sizeof(double) == 8);
 		static_assert(sizeof(std::uint64_t) == 8);
 		std::uint64_t n;
-		memcpy(&n, &d, 8);
+		std::memcpy(&n, &d, 8);
 
-		os_ << 'd';
-		os_ << (char)((n & 0x00000000000000ffull) >> 0);
-		os_ << (char)((n & 0x000000000000ff00ull) >> 8);
-		os_ << (char)((n & 0x0000000000ff0000ull) >> 16);
-		os_ << (char)((n & 0x00000000ff000000ull) >> 24);
-		os_ << (char)((n & 0x000000ff00000000ull) >> 32);
-		os_ << (char)((n & 0x0000ff0000000000ull) >> 40);
-		os_ << (char)((n & 0x00ff000000000000ull) >> 48);
-		os_ << (char)((n & 0xff00000000000000ull) >> 56);
+		*os_ << 'd';
+		*os_ << (char)((n & 0x00000000000000ffull) >> 0);
+		*os_ << (char)((n & 0x000000000000ff00ull) >> 8);
+		*os_ << (char)((n & 0x0000000000ff0000ull) >> 16);
+		*os_ << (char)((n & 0x00000000ff000000ull) >> 24);
+		*os_ << (char)((n & 0x000000ff00000000ull) >> 32);
+		*os_ << (char)((n & 0x0000ff0000000000ull) >> 40);
+		*os_ << (char)((n & 0x00ff000000000000ull) >> 48);
+		*os_ << (char)((n & 0xff00000000000000ull) >> 56);
 	}
 
 	void writeBinary(unsigned char *data, std::size_t length) {
 		checkReady();
 
-		os_ << 'B';
+		*os_ << 'B';
 		writeLEB128((uint64_t)length);
-		os_.write((const char *)data, length);
+		os_->write((const char *)data, length);
 	}
 
 	void writeInt(int64_t num) {
 		checkReady();
 
 		if (num == std::numeric_limits<int64_t>::min()) {
-			os_ << '-';
+			*os_ << '-';
 			writeLEB128((uint64_t)std::numeric_limits<int64_t>::max() + (uint64_t)1);
 		} else if (num < 0) {
-			os_ << '-';
+			*os_ << '-';
 			writeLEB128(-num);
 		} else if (num <= 9) {
-			os_ << (char)('0' + num);
+			*os_ << (char)('0' + num);
 		} else {
-			os_ << '+';
+			*os_ << '+';
 			writeLEB128(num);
 		}
 	}
@@ -140,9 +140,9 @@ public:
 		checkReady();
 
 		if (num <= 9) {
-			os_ << (char)('0' + num);
+			*os_ << (char)('0' + num);
 		} else {
-			os_ << '+';
+			*os_ << '+';
 			writeLEB128(num);
 		}
 	}
@@ -151,29 +151,29 @@ public:
 	void writeArray(Func func) {
 		checkReady();
 
-		os_ << '[';
+		*os_ << '[';
 		ready_ = false;
 		func(Writer(os_));
 		ready_ = true;
-		os_ << ']';
+		*os_ << ']';
 	}
 
 	template<typename Func>
 	void writeObject(Func func) {
 		checkReady();
 
-		os_ << '{';
+		*os_ << '{';
 		ready_ = false;
 		func(ObjectWriter(os_));
 		ready_ = true;
-		os_ << '}';
+		*os_ << '}';
 	}
 
 private:
 	void writeLEB128(uint64_t num) {
 		do {
 			unsigned char hi = (unsigned char)(num > 0x7f ? 0x80 : 0);
-			os_ << (char)(hi | (unsigned char)(num & 0x7f));
+			*os_ << (char)(hi | (unsigned char)(num & 0x7f));
 			num >>= 7;
 		} while (num != 0);
 	}
@@ -184,13 +184,13 @@ private:
 		}
 	}
 
-	std::ostream &os_;
+	std::ostream *os_;
 	bool ready_ = true;
 };
 
 inline Writer ObjectWriter::key(const char *key) {
-	os_ << key;
-	os_ << '\0';
+	*os_ << key;
+	*os_ << '\0';
 	return Writer(os_);
 }
 
@@ -381,7 +381,7 @@ public:
 		n |= (uint32_t)(unsigned char)next() << 24;
 
 		float f;
-		memcpy(&f, &n, 4);
+		std::memcpy(&f, &n, 4);
 		return f;
 	}
 
@@ -406,7 +406,7 @@ public:
 		n |= (uint64_t)(unsigned char)next() << 56;
 
 		double d;
-		memcpy(&d, &n, 8);
+		std::memcpy(&d, &n, 8);
 		return d;
 	}
 
