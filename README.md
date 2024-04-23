@@ -1,15 +1,15 @@
-# NBON: Non-Binary Object Notation
-
 ![NBON Logo](./NBON.png)
 
-There's a lot of binary-JSON-style formats.
-Naturally, they're all more or less unreadable in a text editor;
-you more or less *need* a tool to inspect their contents,
-and you can't reasonably hand-edit them.
+# Non-Binary Object Notation
 
-NBON represents a sort of middle-ground between
-a pure textual notation like JSON and
-a pure binary notation like CBOR/BSON/MessagePack/UBJSON/BJSON/etc.
+There are many formats which aim to be a binary encoding of JSON.
+Naturally, they're all more or less unreadable in a text editor;
+you can't just open, say, a MessagePack file in a text editor
+and get an impression of what data is contained.
+
+The goal of NBON is to represent the overall structure of the data
+using human readable text, while using binary encodings for some of the values
+to make parsing and serialization faster.
 
 An NBON-encoded value can be one of the following:
 
@@ -17,12 +17,14 @@ An NBON-encoded value can be one of the following:
 * False: `'F'` (0x46)
 * Null: `'N'` (0x4e)
 * String: `'S'` (0x54), followed by a 0-terminated UTF-8-encoded string
-* Float: `'f'` (0x66), followed by a little-endian IEEE 754 32-bit floating point number
-* Double: `'d'` (0x64), followed by a little-endian IEEE 754 64-bit floating point number
-* Binary data: `'b'` (0x62), followed by a positive unsigend LEB128 encoded value
+* Binary data: `'B'` (0x62), followed by a positive unsigend LEB128 encoded value
   containing the number of bytes, followed by the bytes themselves
-* Positive integer: `'+'` (0x2b), followed by a positive unsigned LEB128 encoded value
-* Negative integer: `'-'` (0x2d), followed by a negative unsigned LEB128 encoded value
+* Float: `'f'` (0x66), followed by a little-endian IEEE 754 32-bit
+  floating point number
+* Double: `'d'` (0x64), followed by a little-endian IEEE 754 64-bit
+  floating point number
+* Positive integer: `'+'` (0x2b), followed by an unsigned LEB128 encoded value
+* Negative integer: `'-'` (0x2d), followed by an unsigned LEB128 encoded value
 * Immediate integer: `'0'` (0x30) to `'9'` (0x39) represent the integers 0 to 9
 * Array: `'['` (0x5b), followed by 0 or more ordered values, followed by `']'` (0x5d)
 * Object: `'{'` (0x7b), followed by 0 or more ordered key-value pairs,
@@ -47,6 +49,18 @@ This is equivalent to the following JSON:
     "hobbies": ["biking", "jogging"],
     "children": 2
 }
+```
+
+Opening the NBON in some text editor will show us something similar to this:
+
+```
+{name SBob age +8hobbies[Sbiking Sjogging ]children 2}
+```
+
+However, the same object encoded using MessagePack will look more like this:
+
+```
+ ¤name£Bob£age8§hobbies ¦biking§jogging¨children 
 ```
 
 ## Semantics
