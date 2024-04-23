@@ -121,3 +121,7 @@ might be a better idea, since all JSON-like formats waste a lot of space
 by putting object keys everywhere.)
 
 All the other encodings are also more widely supported than NBON.
+
+## Implementations
+
+This repository contains a streaming NBON reader and writer in [cpp/nbon.h](cpp/nbon.h).
