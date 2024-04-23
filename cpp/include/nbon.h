@@ -45,6 +45,7 @@ private:
 
 class Writer {
 public:
+	Writer() = default;
 	explicit Writer(std::ostream *os): os_(os) {}
 
 	void writeTrue() {
@@ -111,7 +112,7 @@ public:
 		*os_ << (char)((n & 0xff00000000000000ull) >> 56);
 	}
 
-	void writeBinary(unsigned char *data, std::size_t length) {
+	void writeBinary(const void *data, std::size_t length) {
 		checkReady();
 
 		*os_ << 'B';
@@ -211,7 +212,7 @@ class Reader;
 
 class ObjectReader {
 public:
-	explicit ObjectReader(std::istream &os): is_(os) {}
+	explicit ObjectReader(std::istream *os): is_(os) {}
 
 	bool hasNext();
 	Reader next(std::string &key);
@@ -220,12 +221,12 @@ public:
 	void all(Func func);
 
 private:
-	std::istream &is_;
+	std::istream *is_;
 };
 
 class ArrayReader {
 public:
-	explicit ArrayReader(std::istream &os): is_(os) {}
+	explicit ArrayReader(std::istream *os): is_(os) {}
 
 	bool hasNext();
 	Reader next();
@@ -234,21 +235,22 @@ public:
 	void all(Func func);
 
 private:
-	std::istream &is_;
+	std::istream *is_;
 };
 
 class Reader {
 public:
-	explicit Reader(std::istream &is): is_(is) {}
+	Reader() = default;
+	explicit Reader(std::istream *is): is_(is) {}
 
 	bool hasNext() {
-		return is_.peek() != EOF;
+		return is_->peek() != EOF;
 	}
 
 	Type nextType() {
 		checkReady();
 
-		int ch = is_.peek();
+		int ch = is_->peek();
 		if (ch == EOF) {
 			throw ParseError("Unexpected EOF");
 		}
@@ -281,7 +283,7 @@ public:
 	bool nextBool() {
 		checkReady();
 
-		int ch = is_.get();
+		int ch = is_->get();
 		if (ch == 'T') {
 			return true;
 		} else if (ch == 'F') {
@@ -294,7 +296,7 @@ public:
 	void skipNil() {
 		checkReady();
 
-		if (is_.get() != 'N') {
+		if (is_->get() != 'N') {
 			throw ParseError("skipNil: Expected 'N'");
 		}
 	}
@@ -302,7 +304,7 @@ public:
 	void nextString(std::string &s) {
 		checkReady();
 
-		if (is_.get() != 'S') {
+		if (is_->get() != 'S') {
 			throw ParseError("nextString: Expected 'S'");
 		}
 
@@ -322,7 +324,7 @@ public:
 	void skipString() {
 		checkReady();
 
-		if (is_.get() != 'S') {
+		if (is_->get() != 'S') {
 			throw ParseError("skipString: Expected 'S'");
 		}
 
@@ -332,7 +334,7 @@ public:
 	void nextBinary(std::vector<unsigned char> &bin) {
 		checkReady();
 
-		if (is_.get() != 'B') {
+		if (is_->get() != 'B') {
 			throw ParseError("nextString: Expected 'B'");
 		}
 
@@ -353,7 +355,7 @@ public:
 	void skipBinary() {
 		checkReady();
 
-		if (is_.get() != 'B') {
+		if (is_->get() != 'B') {
 			throw ParseError("skipBinary: Expected 'B'");
 		}
 
@@ -370,7 +372,7 @@ public:
 		static_assert(sizeof(float) == 4);
 		static_assert(sizeof(std::uint32_t) == 4);
 
-		if (is_.get() != 'f') {
+		if (is_->get() != 'f') {
 			throw ParseError("nextFloat: Expected 'f'");
 		}
 
@@ -391,7 +393,7 @@ public:
 		static_assert(sizeof(double) == 8);
 		static_assert(sizeof(std::uint64_t) == 8);
 
-		if (is_.get() != 'd') {
+		if (is_->get() != 'd') {
 			throw ParseError("nextDouble: Expected 'd'");
 		}
 
@@ -533,7 +535,7 @@ public:
 
 private:
 	char next() {
-		int ch = is_.get();
+		int ch = is_->get();
 		if (ch == EOF) {
 			throw ParseError("Unexpected EOF");
 		}
@@ -543,11 +545,12 @@ private:
 
 	uint64_t nextLEB128() {
 		uint64_t num = 0;
+		uint64_t shift = 0;
 		unsigned char ch;
 		do {
 			ch = (unsigned char)next();
-			num <<= 7;
-			num += ch & 0x7f;
+			num |= (uint64_t)(ch & 0x7f) << shift;
+			shift += 7;
 		} while (ch >= 0x80);
 		return num;
 	}
@@ -558,12 +561,12 @@ private:
 		}
 	}
 
-	std::istream &is_;
+	std::istream *is_;
 	bool ready_ = true;
 };
 
 inline bool ArrayReader::hasNext() {
-	int ret = is_.peek();
+	int ret = is_->peek();
 	return ret != ']' && ret != EOF;
 }
 
@@ -580,14 +583,14 @@ inline void ArrayReader::all(Func func) {
 }
 
 inline bool ObjectReader::hasNext() {
-	int ret = is_.peek();
+	int ret = is_->peek();
 	return ret != '}' && ret != EOF;
 }
 
 inline Reader ObjectReader::next(std::string &key) {
 	key.clear();
 	while (true) {
-		int ch = is_.get();
+		int ch = is_->get();
 		if (ch == EOF) {
 			throw ParseError("ObjectReader::next: Unexpected EOF");
 		} else if (ch == 0) {

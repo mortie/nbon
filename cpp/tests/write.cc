@@ -1,46 +1,39 @@
-#include <limits>
 #include <nbon.h>
+
+#include <limits>
 #include <sstream>
 
 #include "util.h"
 
 #include <doctest/doctest.h>
 
-TEST_CASE("Arrays") {
+TEST_CASE("Basic") {
 	std::stringstream ss;
 	nbon::Writer w(&ss);
 
-	w.writeArray([](nbon::Writer w) {
-		w.writeTrue();
-		w.writeFalse();
-		w.writeArray([](nbon::Writer w) {
-			w.writeBool(false);
-			w.writeBool(true);
-		});
-		w.writeNull();
-	});
+	w.writeTrue();
+	w.writeFalse();
+	w.writeNull();
+	w.writeBool(false);
+	w.writeBool(true);
 
-	checkEq(ss.str(), "[TF[FT]N]");
+	checkEq(ss.str(), "TFNFT");
 }
 
-TEST_CASE("Objects") {
+TEST_CASE("Strings") {
 	std::stringstream ss;
 	nbon::Writer w(&ss);
 
-	w.writeObject([](nbon::ObjectWriter w) {
-		w.key("Hello").writeTrue();
-		w.key("Goodbye").writeFalse();
-		w.key("SubObj").writeObject([](nbon::ObjectWriter w) {
-			w.key("hello world").writeInt(3);
-		});
-		w.key("x").writeInt(2);
-		w.key("y").writeInt(4);
-	});
+	w.writeString("Hello World!");
+	checkEq(ss.str(), "SHello World!<00>");
+}
 
-	checkEq(ss.str(),
-		"{Hello<00>TGoodbye<00>F"
-		"SubObj<00>{hello world<00>3}"
-		"x<00>2y<00>4}");
+TEST_CASE("Binary") {
+	std::stringstream ss;
+	nbon::Writer w(&ss);
+
+	w.writeBinary("Hello", 5);
+	checkEq(ss.str(), "B<05>Hello");
 }
 
 TEST_CASE("Single byte integers") {
@@ -85,7 +78,7 @@ TEST_CASE("Multi byte integers") {
 	w.writeInt(128);
 	w.writeUInt(128);
 
-	w.writeUInt(0xfffffffful);
+	w.writeUInt(0xffffffffull);
 
 	w.writeInt(-0x7fffffffffffffffll);
 	w.writeUInt(0xffffffffffffffffll);
@@ -130,6 +123,43 @@ TEST_CASE("Doubles") {
 		"d<9a><99><99><99><99><99><b9><3f>"
 		"d<00><00><00><00><00><00><26><c0>"
 		"d<00><00><00><00><00><00><f0><7f>");
+}
+
+TEST_CASE("Arrays") {
+	std::stringstream ss;
+	nbon::Writer w(&ss);
+
+	w.writeArray([](nbon::Writer w) {
+		w.writeTrue();
+		w.writeFalse();
+		w.writeArray([](nbon::Writer w) {
+			w.writeBool(false);
+			w.writeBool(true);
+		});
+		w.writeNull();
+	});
+
+	checkEq(ss.str(), "[TF[FT]N]");
+}
+
+TEST_CASE("Objects") {
+	std::stringstream ss;
+	nbon::Writer w(&ss);
+
+	w.writeObject([](nbon::ObjectWriter w) {
+		w.key("Hello").writeTrue();
+		w.key("Goodbye").writeFalse();
+		w.key("SubObj").writeObject([](nbon::ObjectWriter w) {
+			w.key("hello world").writeInt(3);
+		});
+		w.key("x").writeInt(2);
+		w.key("y").writeInt(4);
+	});
+
+	checkEq(ss.str(),
+		"{Hello<00>TGoodbye<00>F"
+		"SubObj<00>{hello world<00>3}"
+		"x<00>2y<00>4}");
 }
 
 TEST_CASE("Logic error checking") {
