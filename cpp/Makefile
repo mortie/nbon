@@ -7,8 +7,11 @@ ifneq ($(SANITIZE),)
 CFLAGS += -fsanitize=$(SANITIZE)
 endif
 
-run-tests: tests/main.cc tests/read.cc tests/write.cc tests/util.h include/nbon.h
-	$(CXX) -o $@ $(CFLAGS) tests/main.cc tests/read.cc tests/write.cc
+HDRS = tests/test.h include/nbon.h
+SRCS = tests/main.cc tests/read.cc tests/write.cc
+
+run-tests: $(HDRS) $(SRCS)
+	$(CXX) -o $@ $(CFLAGS) $(SRCS)
 
 .PHONY: check
 check: run-tests

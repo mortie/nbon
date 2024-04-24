@@ -1,9 +1,9 @@
 #include <nbon.h>
 
 #include <sstream>
-
-#include <doctest/doctest.h>
 #include <string_view>
+
+#include "test.h"
 
 TEST_CASE("Basic") {
 	std::stringstream ss{"TFNFT"};

@@ -1,3 +1,4 @@
 /compile_commands.json
 /run-tests
 /.cache
+/run-tests.dSYM
