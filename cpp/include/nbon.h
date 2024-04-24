@@ -247,7 +247,7 @@ public:
 		return is_->peek() != EOF;
 	}
 
-	Type nextType() {
+	Type getType() {
 		checkReady();
 
 		int ch = is_->peek();
@@ -280,7 +280,7 @@ public:
 		}
 	}
 
-	bool nextBool() {
+	bool getBool() {
 		checkReady();
 
 		int ch = is_->get();
@@ -289,11 +289,11 @@ public:
 		} else if (ch == 'F') {
 			return false;
 		} else {
-			throw ParseError("nextBool: Expected 'T' or 'F'");
+			throw ParseError("getBool: Expected 'T' or 'F'");
 		}
 	}
 
-	void skipNil() {
+	void getNil() {
 		checkReady();
 
 		if (is_->get() != 'N') {
@@ -301,11 +301,11 @@ public:
 		}
 	}
 
-	void nextString(std::string &s) {
+	void getString(std::string &s) {
 		checkReady();
 
 		if (is_->get() != 'S') {
-			throw ParseError("nextString: Expected 'S'");
+			throw ParseError("getString: Expected 'S'");
 		}
 
 		s.clear();
@@ -315,9 +315,9 @@ public:
 		}
 	}
 
-	std::string nextString() {
+	std::string getString() {
 		std::string str;
-		nextString(str);
+		getString(str);
 		return str;
 	}
 
@@ -331,11 +331,11 @@ public:
 		while (next());
 	}
 
-	void nextBinary(std::vector<unsigned char> &bin) {
+	void getBinary(std::vector<unsigned char> &bin) {
 		checkReady();
 
 		if (is_->get() != 'B') {
-			throw ParseError("nextString: Expected 'B'");
+			throw ParseError("getString: Expected 'B'");
 		}
 
 		size_t size = (size_t)nextLEB128();
@@ -346,9 +346,9 @@ public:
 		}
 	}
 
-	std::vector<unsigned char> nextBinary() {
+	std::vector<unsigned char> getBinary() {
 		std::vector<unsigned char> bin;
-		nextBinary(bin);
+		getBinary(bin);
 		return bin;
 	}
 
@@ -366,7 +366,7 @@ public:
 		}
 	}
 
-	float nextFloat() {
+	float getFloat() {
 		checkReady();
 
 		static_assert(sizeof(float) == 4);
@@ -387,7 +387,7 @@ public:
 		return f;
 	}
 
-	double nextDouble() {
+	double getDouble() {
 		checkReady();
 
 		static_assert(sizeof(double) == 8);
@@ -412,7 +412,7 @@ public:
 		return d;
 	}
 
-	int64_t nextInt() {
+	int64_t getInt() {
 		checkReady();
 
 		char ch = next();
@@ -423,11 +423,11 @@ public:
 		} else if (ch == '-') {
 			return -nextLEB128();
 		} else {
-			throw ParseError("nextInt: Expected '0'-'9', '+' or '-'");
+			throw ParseError("getInt: Expected '0'-'9', '+' or '-'");
 		}
 	}
 
-	uint64_t nextUInt() {
+	uint64_t getUInt() {
 		checkReady();
 
 		char ch = next();
@@ -436,17 +436,17 @@ public:
 		} else if (ch == '+') {
 			return nextLEB128();
 		} else {
-			throw ParseError("nextInt: Expected '0'-'9' or '+'");
+			throw ParseError("getInt: Expected '0'-'9' or '+'");
 		}
 	}
 
 	template<typename Func>
-	void nextArray(Func func) {
+	void getArray(Func func) {
 		checkReady();
 
 		char ch = next();
 		if (ch != '[') {
-			throw ParseError("nextArray: Expected '['");
+			throw ParseError("getArray: Expected '['");
 		}
 
 		ready_ = false;
@@ -456,24 +456,24 @@ public:
 
 		ch = next();
 		if (ch != ']') {
-			throw ParseError("nextArray: Expected ']'");
+			throw ParseError("getArray: Expected ']'");
 		}
 	}
 
 	template<typename Func>
-	void readNextArray(Func func) {
-		nextArray([&](ArrayReader arr) {
+	void readArray(Func func) {
+		getArray([&](ArrayReader arr) {
 			arr.all(func);
 		});
 	}
 
 	template<typename Func>
-	void nextObject(Func func) {
+	void getObject(Func func) {
 		checkReady();
 
 		char ch = next();
 		if (ch != '{') {
-			throw ParseError("nextObject: Expected '{'");
+			throw ParseError("getObject: Expected '{'");
 		}
 
 		ready_ = false;
@@ -483,24 +483,24 @@ public:
 
 		ch = next();
 		if (ch != '}') {
-			throw ParseError("nextObject: Expected '}'");
+			throw ParseError("getObject: Expected '}'");
 		}
 	}
 
 	template<typename Func>
-	void readNextObject(Func func) {
-		nextObject([&](ObjectReader obj) {
+	void readObject(Func func) {
+		getObject([&](ObjectReader obj) {
 			obj.all(func);
 		});
 	}
 
-	void skipNext() {
-		switch (nextType()) {
+	void skip() {
+		switch (getType()) {
 		case Type::BOOL:
-			nextBool();
+			getBool();
 			break;
 		case Type::NIL:
-			skipNil();
+			getNil();
 			break;
 		case Type::STRING:
 			skipString();
@@ -509,25 +509,25 @@ public:
 			skipBinary();
 			break;
 		case Type::FLOAT:
-			nextFloat();
+			getFloat();
 			break;
 		case Type::DOUBLE:
-			nextDouble();
+			getDouble();
 			break;
 		case Type::INT:
-			nextInt();
+			getInt();
 			break;
 		case Type::UINT:
-			nextUInt();
+			getUInt();
 			break;
 		case Type::ARRAY:
-			nextArray([](auto &arr) {
-				arr.all([](auto p) { p.skipNext(); });
+			readArray([](Reader r) {
+				r.skip();
 			});
 			break;
 		case Type::OBJECT:
-			nextObject([](auto &obj) {
-				obj.all([](auto &, auto p) { p.skipNext(); });
+			readObject([](std::string &, Reader r) {
+				r.skip();
 			});
 			break;
 		}

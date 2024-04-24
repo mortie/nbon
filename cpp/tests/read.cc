@@ -9,12 +9,13 @@ TEST_CASE("Basic") {
 	std::stringstream ss{"TFNFT"};
 	nbon::Reader r(&ss);
 
-	CHECK(r.nextBool() == true);
-	CHECK(r.nextBool() == false);
-	CHECK(r.nextType() == nbon::Type::NIL);
-	r.skipNil();
-	CHECK(r.nextBool() == false);
-	CHECK(r.nextBool() == true);
+	CHECK(r.getBool() == true);
+	CHECK(r.getBool() == false);
+	CHECK(r.getType() == nbon::Type::NIL);
+	r.getNil();
+	CHECK(r.getBool() == false);
+	CHECK(r.getBool() == true);
+	CHECK(!r.hasNext());
 }
 
 TEST_CASE("Strings") {
@@ -22,7 +23,7 @@ TEST_CASE("Strings") {
 	std::stringstream ss{std::string(buf, sizeof(buf) - 1)};
 	nbon::Reader r(&ss);
 
-	CHECK(r.nextString() == "Hello World!");
+	CHECK(r.getString() == "Hello World!");
 	CHECK(!r.hasNext());
 }
 
@@ -31,9 +32,10 @@ TEST_CASE("Binary") {
 	std::stringstream ss{std::string(buf, sizeof(buf) - 1)};
 	nbon::Reader r(&ss);
 
-	auto vec = r.nextBinary();
+	auto vec = r.getBinary();
 	CHECK(vec.size() == 12);
 	CHECK(std::string_view((char *)vec.data(), vec.size()) == "Hello World!");
+	CHECK(!r.hasNext());
 }
 
 TEST_CASE("Single byte integers") {
@@ -46,11 +48,11 @@ TEST_CASE("Single byte integers") {
 	std::stringstream ss{std::string(buf, sizeof(buf) - 1)};
 	nbon::Reader r(&ss);
 
-	CHECK(r.nextInt() == 3);
-	CHECK(r.nextInt() == 0x0c);
-	CHECK(r.nextInt() == 0x7f);
-	CHECK(r.nextInt() == -2);
-	CHECK(r.nextInt() == -0x7f);
+	CHECK(r.getInt() == 3);
+	CHECK(r.getInt() == 0x0c);
+	CHECK(r.getInt() == 0x7f);
+	CHECK(r.getInt() == -2);
+	CHECK(r.getInt() == -0x7f);
 	CHECK(!r.hasNext());
 
 	char buf2[] =
@@ -59,9 +61,9 @@ TEST_CASE("Single byte integers") {
 		"+\x7f";
 	ss = std::stringstream{std::string(buf2, sizeof(buf2) - 1)};
 	r = nbon::Reader(&ss);
-	CHECK(r.nextUInt() == 3);
-	CHECK(r.nextUInt() == 0x0c);
-	CHECK(r.nextUInt() == 0x7f);
+	CHECK(r.getUInt() == 3);
+	CHECK(r.getUInt() == 0x0c);
+	CHECK(r.getUInt() == 0x7f);
 	CHECK(!r.hasNext());
 }
 
@@ -75,11 +77,11 @@ TEST_CASE("Multi byte integers") {
 	std::stringstream ss{std::string(buf, sizeof(buf) - 1)};
 	nbon::Reader r(&ss);
 
-	CHECK(r.nextInt() == 128);
-	CHECK(r.nextUInt() == 128);
-	CHECK(r.nextUInt() == 0xffffffffull);
-	CHECK(r.nextInt() == -0x7fffffffffffffffll);
-	CHECK(r.nextUInt() == 0xffffffffffffffffll);
+	CHECK(r.getInt() == 128);
+	CHECK(r.getUInt() == 128);
+	CHECK(r.getUInt() == 0xffffffffull);
+	CHECK(r.getInt() == -0x7fffffffffffffffll);
+	CHECK(r.getUInt() == 0xffffffffffffffffll);
 	CHECK(!r.hasNext());
 }
 
@@ -93,11 +95,11 @@ TEST_CASE("Floats") {
 	std::stringstream ss{std::string(buf, sizeof(buf) - 1)};
 	nbon::Reader r(&ss);
 
-	CHECK(r.nextFloat() == 10.0f);
-	CHECK(r.nextFloat() == 10040.33f);
-	CHECK(r.nextFloat() == 0.1f);
-	CHECK(r.nextFloat() == -11.0f);
-	CHECK(r.nextFloat() == std::numeric_limits<float>::infinity());
+	CHECK(r.getFloat() == 10.0f);
+	CHECK(r.getFloat() == 10040.33f);
+	CHECK(r.getFloat() == 0.1f);
+	CHECK(r.getFloat() == -11.0f);
+	CHECK(r.getFloat() == std::numeric_limits<float>::infinity());
 	CHECK(!r.hasNext());
 }
 
@@ -111,11 +113,11 @@ TEST_CASE("Doubles") {
 	std::stringstream ss{std::string(buf, sizeof(buf) - 1)};
 	nbon::Reader r(&ss);
 
-	CHECK(r.nextDouble() == 10);
-	CHECK(r.nextDouble() == 10040.33);
-	CHECK(r.nextDouble() == 0.1);
-	CHECK(r.nextDouble() == -11);
-	CHECK(r.nextDouble() == std::numeric_limits<double>::infinity());
+	CHECK(r.getDouble() == 10);
+	CHECK(r.getDouble() == 10040.33);
+	CHECK(r.getDouble() == 0.1);
+	CHECK(r.getDouble() == -11);
+	CHECK(r.getDouble() == std::numeric_limits<double>::infinity());
 	CHECK(!r.hasNext());
 }
 
@@ -123,14 +125,14 @@ TEST_CASE("Arrays") {
 	std::stringstream ss{"[T[FF]3]"};
 	nbon::Reader r(&ss);
 
-	r.nextArray([](nbon::ArrayReader arr) {
-		CHECK(arr.next().nextBool() == true);
-		arr.next().nextArray([](nbon::ArrayReader arr) {
-			CHECK(arr.next().nextBool() == false);
-			CHECK(arr.next().nextBool() == false);
+	r.getArray([](nbon::ArrayReader arr) {
+		CHECK(arr.next().getBool() == true);
+		arr.next().getArray([](nbon::ArrayReader arr) {
+			CHECK(arr.next().getBool() == false);
+			CHECK(arr.next().getBool() == false);
 			CHECK(!arr.hasNext());
 		});
-		CHECK(arr.next().nextUInt() == 3);
+		CHECK(arr.next().getUInt() == 3);
 	});
 
 	CHECK(!r.hasNext());
@@ -141,30 +143,30 @@ TEST_CASE("Objects") {
 	std::stringstream ss{std::string(buf, sizeof(buf) - 1)};
 	nbon::Reader r(&ss);
 
-	r.nextObject([](nbon::ObjectReader obj) {
+	r.getObject([](nbon::ObjectReader obj) {
 		std::string key;
 		nbon::Reader val;
 		val = obj.next(key);
 		CHECK(key == "Hello");
-		CHECK(val.nextBool() == false);
+		CHECK(val.getBool() == false);
 
 		val = obj.next(key);
 		CHECK(key == "Sub");
-		val.nextObject([&](nbon::ObjectReader obj) {
+		val.getObject([&](nbon::ObjectReader obj) {
 			val = obj.next(key);
 			CHECK(key == "x");
-			CHECK(val.nextType() == nbon::Type::NIL);
-			val.skipNil();
+			CHECK(val.getType() == nbon::Type::NIL);
+			val.getNil();
 
 			val = obj.next(key);
 			CHECK(key == "y");
-			CHECK(val.nextType() == nbon::Type::NIL);
-			val.skipNil();
+			CHECK(val.getType() == nbon::Type::NIL);
+			val.getNil();
 		});
 
 		val = obj.next(key);
 		CHECK(key == "last");
-		CHECK(val.nextBool() == true);
+		CHECK(val.getBool() == true);
 	});
 
 	CHECK(!r.hasNext());
