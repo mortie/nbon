@@ -15,6 +15,8 @@ Also, making languages is fun and I wanted to make a language.
 You shouldn't use NBON if you don't want to.
 This README isn't trying to sell you anything.
 
+![Sample](sample.png)
+
 An NBON-encoded value can be one of the following:
 
 * True: `'T'` (0x56)
