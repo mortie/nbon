@@ -96,9 +96,9 @@ surrogate pairs), you don't need to serialize and parse floats (have you ever tr
 writing a float serializer + parser which round-trips every number correctly?),
 you don't need to worry about whitespace, etc.
 
-As a result, NBON should be much faster than JSON.
+NBON should also be much faster for a computer to serialize and parse.
 
-The obvious drawback is that JSON is completely human readable.
+The obvious advantage of JSON is of course that it's pure plain text.
 
 ## Comparison to other binary JSON variants
 
@@ -128,4 +128,4 @@ All the other encodings are also more widely supported than NBON.
 
 ## Implementations
 
-This repository contains a streaming NBON reader and writer in [cpp/nbon.h](cpp/nbon.h).
+This repository contains a streaming NBON reader and writer in [cpp/](cpp/).
