@@ -1,3 +1,6 @@
+#ifndef NBON_H
+#define NBON_H
+
 #include <cstddef>
 #include <iostream>
 #include <limits>
@@ -613,3 +616,5 @@ inline void ObjectReader::all(Func func) {
 }
 
 }
+
+#endif
