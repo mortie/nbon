@@ -1,7 +1,7 @@
-# NBON C++ Implementation
+# SBON C++ Implementation
 
-This is a streaming parser and serializer of NBON for C++.
-You can find the source code in [include/nbon.h](include/nbon.h).
+This is a streaming parser and serializer of SBON for C++.
+You can find the source code in [include/sbon.h](include/sbon.h).
 
 Run tests with `make check`.
 

@@ -1,5 +1,5 @@
-#ifndef NBON_H
-#define NBON_H
+#ifndef SBON_H
+#define SBON_H
 
 #include <cstddef>
 #include <iostream>
@@ -11,19 +11,19 @@
 #include <vector>
 #include <string>
 
-namespace nbon {
+namespace sbon {
 
 class LogicError: public std::exception {
 public:
 	const char *what() const noexcept override {
-		return "NBON logic error";
+		return "SBON logic error";
 	}
 };
 
 class ParseError: public std::exception {
 public:
 	ParseError(const char *str) {
-		str_ = "NBON parse error: ";
+		str_ = "SBON parse error: ";
 		str_ += str;
 	}
 

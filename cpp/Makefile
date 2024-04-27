@@ -7,7 +7,7 @@ ifneq ($(SANITIZE),)
 CFLAGS += -fsanitize=$(SANITIZE)
 endif
 
-HDRS = tests/test.h include/nbon.h
+HDRS = tests/test.h include/sbon.h
 SRCS = tests/main.cc tests/read.cc tests/write.cc
 
 run-tests: $(HDRS) $(SRCS)

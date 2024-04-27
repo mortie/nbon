@@ -1,4 +1,4 @@
-#include <nbon.h>
+#include <sbon.h>
 
 #include <sstream>
 #include <string_view>
@@ -7,11 +7,11 @@
 
 TEST_CASE("Basic") {
 	std::stringstream ss{"TFNFT"};
-	nbon::Reader r(&ss);
+	sbon::Reader r(&ss);
 
 	CHECK(r.getBool() == true);
 	CHECK(r.getBool() == false);
-	CHECK(r.getType() == nbon::Type::NIL);
+	CHECK(r.getType() == sbon::Type::NIL);
 	r.getNil();
 	CHECK(r.getBool() == false);
 	CHECK(r.getBool() == true);
@@ -21,7 +21,7 @@ TEST_CASE("Basic") {
 TEST_CASE("Strings") {
 	char buf[] = "SHello World!\0";
 	std::stringstream ss{std::string(buf, sizeof(buf) - 1)};
-	nbon::Reader r(&ss);
+	sbon::Reader r(&ss);
 
 	CHECK(r.getString() == "Hello World!");
 	CHECK(!r.hasNext());
@@ -30,7 +30,7 @@ TEST_CASE("Strings") {
 TEST_CASE("Binary") {
 	char buf[] = "B\x0cHello World!";
 	std::stringstream ss{std::string(buf, sizeof(buf) - 1)};
-	nbon::Reader r(&ss);
+	sbon::Reader r(&ss);
 
 	auto vec = r.getBinary();
 	CHECK(vec.size() == 12);
@@ -46,7 +46,7 @@ TEST_CASE("Single byte integers") {
 		"-\x02"
 		"-\x7f";
 	std::stringstream ss{std::string(buf, sizeof(buf) - 1)};
-	nbon::Reader r(&ss);
+	sbon::Reader r(&ss);
 
 	CHECK(r.getInt() == 3);
 	CHECK(r.getInt() == 0x0c);
@@ -60,7 +60,7 @@ TEST_CASE("Single byte integers") {
 		"+\x0c"
 		"+\x7f";
 	ss = std::stringstream{std::string(buf2, sizeof(buf2) - 1)};
-	r = nbon::Reader(&ss);
+	r = sbon::Reader(&ss);
 	CHECK(r.getUInt() == 3);
 	CHECK(r.getUInt() == 0x0c);
 	CHECK(r.getUInt() == 0x7f);
@@ -75,7 +75,7 @@ TEST_CASE("Multi byte integers") {
 		"-\xff\xff\xff\xff\xff\xff\xff\xff\x7f"
 		"+\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01";
 	std::stringstream ss{std::string(buf, sizeof(buf) - 1)};
-	nbon::Reader r(&ss);
+	sbon::Reader r(&ss);
 
 	CHECK(r.getInt() == 128);
 	CHECK(r.getUInt() == 128);
@@ -93,7 +93,7 @@ TEST_CASE("Floats") {
 		"f\x00\x00\x30\xc1"
 		"f\x00\x00\x80\x7f";
 	std::stringstream ss{std::string(buf, sizeof(buf) - 1)};
-	nbon::Reader r(&ss);
+	sbon::Reader r(&ss);
 
 	CHECK(r.getFloat() == 10.0f);
 	CHECK(r.getFloat() == 10040.33f);
@@ -111,7 +111,7 @@ TEST_CASE("Doubles") {
 		"d\x00\x00\x00\x00\x00\x00\x26\xc0"
 		"d\x00\x00\x00\x00\x00\x00\xf0\x7f";
 	std::stringstream ss{std::string(buf, sizeof(buf) - 1)};
-	nbon::Reader r(&ss);
+	sbon::Reader r(&ss);
 
 	CHECK(r.getDouble() == 10);
 	CHECK(r.getDouble() == 10040.33);
@@ -123,11 +123,11 @@ TEST_CASE("Doubles") {
 
 TEST_CASE("Arrays") {
 	std::stringstream ss{"[T[FF]3]"};
-	nbon::Reader r(&ss);
+	sbon::Reader r(&ss);
 
-	r.getArray([](nbon::ArrayReader arr) {
+	r.getArray([](sbon::ArrayReader arr) {
 		CHECK(arr.next().getBool() == true);
-		arr.next().getArray([](nbon::ArrayReader arr) {
+		arr.next().getArray([](sbon::ArrayReader arr) {
 			CHECK(arr.next().getBool() == false);
 			CHECK(arr.next().getBool() == false);
 			CHECK(!arr.hasNext());
@@ -141,26 +141,26 @@ TEST_CASE("Arrays") {
 TEST_CASE("Objects") {
 	char buf[] = "{Hello\0FSub\0{x\0Ny\0N}last\0T}";
 	std::stringstream ss{std::string(buf, sizeof(buf) - 1)};
-	nbon::Reader r(&ss);
+	sbon::Reader r(&ss);
 
-	r.getObject([](nbon::ObjectReader obj) {
+	r.getObject([](sbon::ObjectReader obj) {
 		std::string key;
-		nbon::Reader val;
+		sbon::Reader val;
 		val = obj.next(key);
 		CHECK(key == "Hello");
 		CHECK(val.getBool() == false);
 
 		val = obj.next(key);
 		CHECK(key == "Sub");
-		val.getObject([&](nbon::ObjectReader obj) {
+		val.getObject([&](sbon::ObjectReader obj) {
 			val = obj.next(key);
 			CHECK(key == "x");
-			CHECK(val.getType() == nbon::Type::NIL);
+			CHECK(val.getType() == sbon::Type::NIL);
 			val.getNil();
 
 			val = obj.next(key);
 			CHECK(key == "y");
-			CHECK(val.getType() == nbon::Type::NIL);
+			CHECK(val.getType() == sbon::Type::NIL);
 			val.getNil();
 		});
 

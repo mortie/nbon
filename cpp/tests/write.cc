@@ -1,4 +1,4 @@
-#include <nbon.h>
+#include <sbon.h>
 
 #include <limits>
 #include <sstream>
@@ -48,7 +48,7 @@ static void checkEq(std::string actual, const char *expected) {
 
 TEST_CASE("Basic") {
 	std::stringstream ss;
-	nbon::Writer w(&ss);
+	sbon::Writer w(&ss);
 
 	w.writeTrue();
 	w.writeFalse();
@@ -61,7 +61,7 @@ TEST_CASE("Basic") {
 
 TEST_CASE("Strings") {
 	std::stringstream ss;
-	nbon::Writer w(&ss);
+	sbon::Writer w(&ss);
 
 	w.writeString("Hello World!");
 	checkEq(ss.str(), "SHello World!<00>");
@@ -69,7 +69,7 @@ TEST_CASE("Strings") {
 
 TEST_CASE("Binary") {
 	std::stringstream ss;
-	nbon::Writer w(&ss);
+	sbon::Writer w(&ss);
 
 	w.writeBinary("Hello", 5);
 	checkEq(ss.str(), "B<05>Hello");
@@ -77,7 +77,7 @@ TEST_CASE("Binary") {
 
 TEST_CASE("Single byte integers") {
 	std::stringstream ss;
-	nbon::Writer w(&ss);
+	sbon::Writer w(&ss);
 
 	// 0-9
 	w.writeInt(0);
@@ -112,7 +112,7 @@ TEST_CASE("Single byte integers") {
 
 TEST_CASE("Multi byte integers") {
 	std::stringstream ss;
-	nbon::Writer w(&ss);
+	sbon::Writer w(&ss);
 
 	w.writeInt(128);
 	w.writeUInt(128);
@@ -132,7 +132,7 @@ TEST_CASE("Multi byte integers") {
 
 TEST_CASE("Floats") {
 	std::stringstream ss;
-	nbon::Writer w(&ss);
+	sbon::Writer w(&ss);
 
 	w.writeFloat(10);
 	w.writeFloat(10040.33);
@@ -149,7 +149,7 @@ TEST_CASE("Floats") {
 
 TEST_CASE("Doubles") {
 	std::stringstream ss;
-	nbon::Writer w(&ss);
+	sbon::Writer w(&ss);
 
 	w.writeDouble(10);
 	w.writeDouble(10040.33);
@@ -166,12 +166,12 @@ TEST_CASE("Doubles") {
 
 TEST_CASE("Arrays") {
 	std::stringstream ss;
-	nbon::Writer w(&ss);
+	sbon::Writer w(&ss);
 
-	w.writeArray([](nbon::Writer w) {
+	w.writeArray([](sbon::Writer w) {
 		w.writeTrue();
 		w.writeFalse();
-		w.writeArray([](nbon::Writer w) {
+		w.writeArray([](sbon::Writer w) {
 			w.writeBool(false);
 			w.writeBool(true);
 		});
@@ -183,12 +183,12 @@ TEST_CASE("Arrays") {
 
 TEST_CASE("Objects") {
 	std::stringstream ss;
-	nbon::Writer w(&ss);
+	sbon::Writer w(&ss);
 
-	w.writeObject([](nbon::ObjectWriter w) {
+	w.writeObject([](sbon::ObjectWriter w) {
 		w.key("Hello").writeTrue();
 		w.key("Goodbye").writeFalse();
-		w.key("SubObj").writeObject([](nbon::ObjectWriter w) {
+		w.key("SubObj").writeObject([](sbon::ObjectWriter w) {
 			w.key("hello world").writeInt(3);
 		});
 		w.key("x").writeInt(2);
@@ -203,7 +203,7 @@ TEST_CASE("Objects") {
 
 TEST_CASE("Logic error checking") {
 	std::stringstream ss;
-	nbon::Writer w(&ss);
+	sbon::Writer w(&ss);
 
 	bool threw = false;
 	try {
@@ -211,7 +211,7 @@ TEST_CASE("Logic error checking") {
 			// Write to toplevel
 			w.writeInt(10);
 		});
-	} catch (nbon::LogicError &err) {
+	} catch (sbon::LogicError &err) {
 		threw = true;
 	}
 	CHECK(threw);
@@ -222,7 +222,7 @@ TEST_CASE("Logic error checking") {
 			// Write to toplevel
 			w.writeInt(10);
 		});
-	} catch (nbon::LogicError &err) {
+	} catch (sbon::LogicError &err) {
 		threw = true;
 	}
 	CHECK(threw);
