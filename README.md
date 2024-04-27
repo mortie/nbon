@@ -72,6 +72,11 @@ However, the same object encoded using MessagePack will look more like this:
 ## Semantics
 
 * The values true, false and null have the same meaning they do in JSON.
+* Numbers which represent the same "mathematical" value are semantically equivalent.
+  This means that the immediate integer '3', the float 3.0, the double 3.0 and
+  the LEB128-encoded integer 3 are semantically equivalent.
+* Converting a float to a double preserves the semantic meaning of the document.
+  Converting a double to a float preserves the semantic meaning only if no precision is lost.
 * Floats and doubles are distinct. Applications are free to treat them interchangeably,
   but converting a float to a double does not preserve the semantic meaning of the document.
 * Arrays are ordered (i.e they're lists, not sets).

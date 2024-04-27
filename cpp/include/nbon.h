@@ -378,76 +378,68 @@ public:
 	}
 
 	float getFloat() {
-		checkReady();
-
-		static_assert(sizeof(float) == 4);
-		static_assert(sizeof(std::uint32_t) == 4);
-
-		if (is_->get() != 'f') {
-			throw ParseError("nextFloat: Expected 'f'");
-		}
-
-		uint32_t n = 0;
-		n |= (uint32_t)(unsigned char)next() << 0;
-		n |= (uint32_t)(unsigned char)next() << 8;
-		n |= (uint32_t)(unsigned char)next() << 16;
-		n |= (uint32_t)(unsigned char)next() << 24;
-
-		float f;
-		std::memcpy(&f, &n, 4);
-		return f;
+		return getNumber<float>();
 	}
 
 	double getDouble() {
-		checkReady();
-
-		static_assert(sizeof(double) == 8);
-		static_assert(sizeof(std::uint64_t) == 8);
-
-		if (is_->get() != 'd') {
-			throw ParseError("nextDouble: Expected 'd'");
-		}
-
-		uint64_t n = 0;
-		n |= (uint64_t)(unsigned char)next() << 0;
-		n |= (uint64_t)(unsigned char)next() << 8;
-		n |= (uint64_t)(unsigned char)next() << 16;
-		n |= (uint64_t)(unsigned char)next() << 24;
-		n |= (uint64_t)(unsigned char)next() << 32;
-		n |= (uint64_t)(unsigned char)next() << 40;
-		n |= (uint64_t)(unsigned char)next() << 48;
-		n |= (uint64_t)(unsigned char)next() << 56;
-
-		double d;
-		std::memcpy(&d, &n, 8);
-		return d;
+		return getNumber<double>();
 	}
 
 	int64_t getInt() {
-		checkReady();
-
-		char ch = next();
-		if (ch >= '0' && ch <= '9') {
-			return ch - '0';
-		} else if (ch == '+') {
-			return nextLEB128();
-		} else if (ch == '-') {
-			return -nextLEB128();
-		} else {
-			throw ParseError("getInt: Expected '0'-'9', '+' or '-'");
-		}
+		return getNumber<int64_t>();
 	}
 
 	uint64_t getUInt() {
+		return getNumber<uint64_t>();
+	}
+
+	template<typename T>
+	T getNumber() {
 		checkReady();
 
 		char ch = next();
 		if (ch >= '0' && ch <= '9') {
-			return ch - '0';
+			unsigned char u = ch - '0';
+			return (T)u;
 		} else if (ch == '+') {
-			return nextLEB128();
+			uint64_t u = nextLEB128();
+			T num(u);
+			if ((uint64_t)num != u) {
+				throw ParseError("getNumber: Got unrepresentable number");
+			}
+
+			return num;
+		} else if (ch == '-') {
+			uint64_t u = nextLEB128();
+			if (u > (uint64_t)(std::numeric_limits<int64_t>::max())) {
+				throw ParseError("getNumber: Got unrepresentable number");
+			}
+
+			int64_t i = -(int64_t)u;
+			T num(i);
+			if ((int64_t)num != i) {
+				throw ParseError("getNumber: Got unrepresentable number");
+			}
+
+			return num;
+		} else if (ch == 'f') {
+			float f = nextFloat();
+			T num(f);
+			if ((float)num != f) {
+				throw ParseError("getNumber: Got unrepresentable number");
+			}
+
+			return num;
+		} else if (ch == 'd') {
+			double d = nextDouble();
+			T num(d);
+			if ((double)num != d) {
+				throw ParseError("getNumber: Got unrepresentable number");
+			}
+
+			return num;
 		} else {
-			throw ParseError("getInt: Expected '0'-'9' or '+'");
+			throw ParseError("getNumber: Expected number");
 		}
 	}
 
@@ -564,6 +556,40 @@ private:
 			shift += 7;
 		} while (ch >= 0x80);
 		return num;
+	}
+
+	float nextFloat() {
+		static_assert(sizeof(float) == 4);
+		static_assert(sizeof(std::uint32_t) == 4);
+
+		uint32_t n = 0;
+		n |= (uint32_t)(unsigned char)next() << 0;
+		n |= (uint32_t)(unsigned char)next() << 8;
+		n |= (uint32_t)(unsigned char)next() << 16;
+		n |= (uint32_t)(unsigned char)next() << 24;
+
+		float f;
+		std::memcpy(&f, &n, 4);
+		return f;
+	}
+
+	double nextDouble() {
+		static_assert(sizeof(double) == 8);
+		static_assert(sizeof(std::uint64_t) == 8);
+
+		uint64_t n = 0;
+		n |= (uint64_t)(unsigned char)next() << 0;
+		n |= (uint64_t)(unsigned char)next() << 8;
+		n |= (uint64_t)(unsigned char)next() << 16;
+		n |= (uint64_t)(unsigned char)next() << 24;
+		n |= (uint64_t)(unsigned char)next() << 32;
+		n |= (uint64_t)(unsigned char)next() << 40;
+		n |= (uint64_t)(unsigned char)next() << 48;
+		n |= (uint64_t)(unsigned char)next() << 56;
+
+		double d;
+		std::memcpy(&d, &n, 8);
+		return d;
 	}
 
 	void checkReady() {
