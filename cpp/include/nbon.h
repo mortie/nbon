@@ -7,6 +7,7 @@
 #include <cstring>
 #include <cstdint>
 #include <exception>
+#include <string_view>
 #include <vector>
 #include <string>
 
@@ -75,8 +76,15 @@ public:
 		*os_ << 'N';
 	}
 
-	void writeString(const char *str) {
+	void writeString(std::string_view str) {
 		checkReady();
+
+		for (size_t i = 0; i < str.size(); ++i) {
+			if (str[i] == '\0') {
+				str = std::string_view(str.data(), i);
+				break;
+			}
+		}
 
 		*os_ << 'S' << str << '\0';
 	}
