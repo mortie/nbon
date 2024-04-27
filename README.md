@@ -11,6 +11,10 @@ The goal of NBON is to represent the overall structure of the data
 using human readable text, while using binary encodings for some of the values
 to make parsing and serialization faster.
 
+Also, making languages is fun and I wanted to make a language.
+You shouldn't use NBON if you don't want to.
+This README isn't trying to sell you anything.
+
 An NBON-encoded value can be one of the following:
 
 * True: `'T'` (0x56)
