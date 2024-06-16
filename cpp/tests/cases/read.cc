@@ -171,3 +171,41 @@ TEST_CASE("Objects") {
 
 	CHECK(!r.hasNext());
 }
+
+TEST_CASE("Object matching") {
+	char buf[] = "{Hello\0FSub\0{x\0Ny\0" "3z\0" "Syes\0}last\0T}";
+	std::stringstream ss{std::string(buf, sizeof(buf) - 1)};
+	sbon::Reader r(&ss);
+
+	int remaining = 6;
+	r.matchObject({
+		{"Hello", [&](sbon::Reader val) {
+			CHECK(val.getBool() == false);
+			remaining -= 1;
+		}},
+		{"last", [&](sbon::Reader val) {
+			CHECK(val.getBool() == true);
+			remaining -= 1;
+		}},
+		{"Sub", [&](sbon::Reader val) {
+			val.matchObject({
+				{"x", [&](sbon::Reader val) {
+					CHECK(val.getType() == sbon::Type::NIL);
+					val.skip();
+					remaining -= 1;
+				}},
+				{"y", [&](sbon::Reader val) {
+					CHECK(val.getInt() == 3);
+					remaining -= 1;
+				}},
+				{"z", [&](sbon::Reader val) {
+					CHECK(val.getString() == "yes");
+					remaining -= 1;
+				}},
+			});
+			remaining -= 1;
+		}},
+	});
+
+	CHECK(remaining == 0);
+}

@@ -7,16 +7,22 @@ ifneq ($(SANITIZE),)
 CFLAGS += -fsanitize=$(SANITIZE)
 endif
 
-HDRS = tests/test.h include/sbon.h
-SRCS = tests/main.cc tests/read.cc tests/write.cc
 
-run-tests: $(HDRS) $(SRCS)
-	$(CXX) -o $@ $(CFLAGS) $(SRCS)
+.PHONY: all
+all: sbon-to-json
+
+TEST_HDRS = tests/test.h include/sbon.h
+TEST_SRCS = tests/main.cc tests/cases/read.cc tests/cases/write.cc
+test-sbon: $(TEST_HDRS) $(TEST_SRCS)
+	$(CXX) -o $@ $(CFLAGS) $(TEST_SRCS) -Itests
+
+sbon-to-json: examples/sbon-to-json.cc include/sbon.h
+	$(CXX) -o $@ $(CFLAGS) -O2 $<
 
 .PHONY: check
-check: run-tests
-	$(CMD) ./run-tests
+check: test-sbon
+	$(CMD) ./test-sbon
 
 .PHONY: clean
 clean:
-	rm -f run-tests
+	rm -f test-sbon sbon-to-json

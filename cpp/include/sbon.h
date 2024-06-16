@@ -220,10 +220,11 @@ enum class Type {
 };
 
 class Reader;
+class ObjectMatcher;
 
 class ObjectReader {
 public:
-	explicit ObjectReader(std::istream *os): is_(os) {}
+	explicit ObjectReader(std::istream *is): is_(is) {}
 
 	bool hasNext();
 	Reader next(std::string &key);
@@ -231,13 +232,32 @@ public:
 	template<typename Func>
 	void all(Func func);
 
+	void match(const std::initializer_list<ObjectMatcher> &matchers);
+
 private:
 	std::istream *is_;
 };
 
+class ObjectMatcher {
+public:
+	template<typename Func>
+	ObjectMatcher(std::string_view key, const Func &func);
+
+	const std::string_view key() const {
+		return key_;
+	}
+
+	void call(Reader val) const;
+
+private:
+	std::string_view key_;
+	void (*func_)();
+	void (*invoker_)(void (*func)(), Reader);
+};
+
 class ArrayReader {
 public:
-	explicit ArrayReader(std::istream *os): is_(os) {}
+	explicit ArrayReader(std::istream *is): is_(is) {}
 
 	bool hasNext();
 	Reader next();
@@ -497,6 +517,12 @@ public:
 		});
 	}
 
+	void matchObject(const std::initializer_list<ObjectMatcher> &matchers) {
+		getObject([&](ObjectReader obj) {
+			obj.match(matchers);
+		});
+	}
+
 	void skip() {
 		switch (getType()) {
 		case Type::BOOL:
@@ -647,6 +673,44 @@ inline void ObjectReader::all(Func func) {
 		auto val = next(key);
 		func(key, val);
 	}
+}
+
+template<typename Func>
+struct ObjectReaderMatcher {
+	std::string_view key;
+	Func func;
+};
+
+inline void ObjectReader::match(const std::initializer_list<ObjectMatcher> &matchers)
+{
+	std::string key;
+	while (hasNext()) {
+		auto val = next(key);
+		bool matched = false;
+		for (auto &matcher: matchers) {
+			if (matcher.key() == key) {
+				matched = true;
+				matcher.call(val);
+				break;
+			}
+		}
+
+		if (!matched) {
+			val.skip();
+		}
+	}
+}
+
+template<typename Func>
+inline ObjectMatcher::ObjectMatcher(std::string_view key, const Func &func):
+	key_(key),
+	func_((void (*)())&func),
+	invoker_(+[](void (*func)(), Reader val) {
+		(*(Func *)func)(val);
+	}) {}
+
+inline void ObjectMatcher::call(Reader val) const {
+	invoker_(func_, val);
 }
 
 }
